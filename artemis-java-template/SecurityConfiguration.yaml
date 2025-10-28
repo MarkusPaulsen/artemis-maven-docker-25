@@ -1,0 +1,18 @@
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: de.tum.in.ase
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.in.ase.AttributeTest"
+    - "de.tum.in.ase.ClassTest"
+    - "de.tum.in.ase.ConstructorTest"
+    - "de.tum.in.ase.MethodTest"
+    - "de.tum.in.ase.SortingExampleBehaviorTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000

@@ -13,14 +13,22 @@ plugins {
 apply plugin: "java"
 apply plugin: "org.checkerframework"
 
+//<editor-fold desc="Instrumentation (1)">
+configurations {
+    aresAgent
+}
+//</editor-fold>
+
+version = "1.0.0"
+
 repositories {
     mavenCentral()
     mavenLocal()
 }
 
 dependencies {
-    testImplementation "de.tum.in.ase:artemis-java-test-sandbox:1.15.0"
-    testImplementation "net.bytebuddy:byte-buddy:1.17.6"
+    aresAgent "de.tum.cit.ase:ares:2.0.1-Beta4"
+    testImplementation "de.tum.cit.ase:ares:2.0.1-Beta4"
 
     implementation "org.apache.commons:commons-lang3:${commons_lang3_version}"
 
@@ -60,6 +68,7 @@ sourceSets {
 
 def forbiddenPackageFolders = [ //(2)
                                 "$studentOutputDir/ch/qos/logback/",
+                                "$studentOutputDir/com/github/javaparser/",
                                 "$studentOutputDir/com/intellij/",
                                 "$studentOutputDir/com/sun/",
                                 "$studentOutputDir/de/tum/in/test/api/",
@@ -78,6 +87,38 @@ def forbiddenPackageFolders = [ //(2)
                                 "$studentOutputDir/sun/",
                                 "$studentOutputDir/worker/org/gradle/"
 ]
+
+//<editor-fold desc="Instrumentation (2)">
+tasks.register("prepareInstrumentationAgentFiles", Copy) {
+    dependsOn configurations.aresAgent
+    description "Extracts Ares agent from JAR for JVM injection"
+    from configurations.aresAgent.filter { it.name.startsWith("ares-") }
+    into layout.buildDirectory.dir("agents")
+}
+//</editor-fold>
+
+//<editor-fold desc="Instrumentation (3)">
+tasks.register("buildInstrumentationAgent", Jar) {
+    dependsOn prepareInstrumentationAgentFiles
+    description "Builds a proper Java agent from the Ares JAR with correct manifest"
+    archiveFileName = "ares-agent.jar"
+    destinationDirectory = layout.buildDirectory.dir("agents")
+    from zipTree(layout.buildDirectory.file("agents/ares-2.0.1-Beta4.jar").get().asFile)
+    manifest {
+        attributes(
+                "Manifest-Version": "1.0",
+                "Premain-Class": "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent",
+                "Can-Redefine-Classes": "true",
+                "Can-Retransform-Classes": "true",
+                "Can-Set-Native-Method-Prefix": "true",
+                "Boot-Class-Path": "",
+                "Main-Class": "de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent",
+                "Multi-Release": "true"
+        )
+    }
+}
+//</editor-fold>
+
 test {
     doFirst { //(1)
         for (String packageFolder in forbiddenPackageFolders) {
@@ -86,6 +127,17 @@ test {
     }
     defaultCharacterEncoding = "UTF-8"
     useJUnitPlatform()
+
+    //<editor-fold desc="Instrumentation (4)">
+    jvmArgs += [
+            "-javaagent:${new File(buildDir, "agents/ares-agent.jar").absolutePath}",
+            "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
+            "--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED",
+            "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+            "--add-exports", "java.base/java.lang=ALL-UNNAMED"
+    ]
+    dependsOn buildInstrumentationAgent
+    //</editor-fold>
 }
 
 checkstyle {

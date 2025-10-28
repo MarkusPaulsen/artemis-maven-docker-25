@@ -7,20 +7,16 @@ import java.lang.reflect.InvocationTargetException;
 import java.text.*;
 import java.util.*;
 
-import static de.tum.in.test.api.util.ReflectionTestUtils.*;
+import static de.tum.cit.ase.ares.api.util.ReflectionTestUtils.*;
 
-import de.tum.in.test.api.BlacklistPath;
-import de.tum.in.test.api.PathType;
-import de.tum.in.test.api.StrictTimeout;
-import de.tum.in.test.api.WhitelistPath;
-import de.tum.in.test.api.jupiter.Public;
+import de.tum.cit.ase.ares.api.StrictTimeout;
+import de.tum.cit.ase.ares.api.jupiter.Public;
+import de.tum.cit.ase.ares.api.Policy;
 
 /**
  * @author Stephan Krusche (krusche@in.tum.de)
  * @version 5.0 (11.11.2020)
  */
-@WhitelistPath("target")
-@BlacklistPath(value = "**Test*.{java,class}", type = PathType.GLOB)
 @Public
 public class SortingExampleBehaviorTest {
 
@@ -40,6 +36,10 @@ public class SortingExampleBehaviorTest {
     }
 
     @Test
+    @Policy(
+            value = "SecurityConfiguration.yaml",
+            withinPath = "classes/java/main/de/tum/in/ase"
+    )
     @StrictTimeout(1)
     public void testBubbleSort() {
         BubbleSort bubbleSort = new BubbleSort();
@@ -50,6 +50,10 @@ public class SortingExampleBehaviorTest {
     }
 
     @Test
+    @Policy(
+            value = "SecurityConfiguration.yaml",
+            withinPath = "classes/java/main/de/tum/in/ase"
+    )
     @StrictTimeout(1)
     public void testMergeSort() {
         MergeSort mergeSort = new MergeSort();
@@ -60,6 +64,10 @@ public class SortingExampleBehaviorTest {
     }
 
     @Test
+    @Policy(
+            value = "SecurityConfiguration.yaml",
+            withinPath = "classes/java/main/de/tum/in/ase"
+    )
     @StrictTimeout(1)
     public void testUseMergeSortForBigList() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, ClassNotFoundException {
         List<Date> bigList = new ArrayList<Date>();
@@ -73,6 +81,10 @@ public class SortingExampleBehaviorTest {
     }
 
     @Test
+    @Policy(
+            value = "SecurityConfiguration.yaml",
+            withinPath = "classes/java/main/de/tum/in/ase"
+    )
     @StrictTimeout(1)
     public void testUseBubbleSortForSmallList()  throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, InstantiationException, ClassNotFoundException {
         List<Date> smallList = new ArrayList<Date>();
