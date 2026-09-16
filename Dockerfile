@@ -23,4 +23,19 @@ RUN cd /opt/artemis-java-template && pwd && ls -la && ./gradlew clean test check
 
 RUN rm -rf /opt/artemis-java-template
 
+# Embed Phobos, the operating-system sandbox layer, from its own published multi-arch image.
+# Only its compiled core is copied (the scripts, the Landlock wrapper, the connect guard and
+# the per-architecture libnetblocker.so), not that image's base, and buildx pulls the copy
+# that matches the architecture being built. Its binaries are static-pie and its library
+# needs no glibc newer than this base ships, so they load here. Ares guards the JVM, Phobos
+# the operating system, the container the machine: separate layers, and this image now carries
+# the first two so a grading run can wrap its build command with phobos.sh.
+COPY --from=ghcr.io/ls1intum/phobos:latest /var/tmp/opt/core /var/tmp/opt/core
+ENV PHOBOS_HOME=/var/tmp/opt/core
+ENV PATH=/var/tmp/opt/core:$PATH
+RUN test -x /var/tmp/opt/core/phobos.sh \
+    && test -x /var/tmp/opt/core/phobos-connect-guard \
+    && test -x /var/tmp/opt/core/phobos-landlock \
+    && test -f /var/tmp/opt/core/libnetblocker.so
+
 CMD ["mvn"]
