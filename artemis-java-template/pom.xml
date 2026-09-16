@@ -20,7 +20,7 @@
         <dependency>
             <groupId>de.tum.cit.ase</groupId>
             <artifactId>ares</artifactId>
-            <version>2.0.1-Beta4</version>
+            <version>2.1.5</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.junit.jupiter</groupId>
@@ -51,6 +51,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>5.13.4</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Enable JUnit 4 compatibility on JUnit 5 platform to satisfy ARES' reference to junit.framework.ComparisonFailure -->
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
             <version>5.13.4</version>
             <scope>test</scope>
         </dependency>
@@ -265,70 +272,34 @@
                 </executions>
             </plugin>
 
-            <!-- Ares-Original-Jar entpacken (für Agent-Repackaging) -->
+            <!-- Publiziertes Ares-Agent-Jar (Classifier: agent) von Maven Central beziehen; kein manuelles Repackaging noetig -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.6.1</version>
                 <executions>
                     <execution>
-                        <id>unpack-ares</id>
+                        <id>copy-ares-agent</id>
                         <phase>process-test-classes</phase>
                         <goals>
-                            <goal>unpack</goal>
+                            <goal>copy</goal>
                         </goals>
                         <configuration>
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>de.tum.cit.ase</groupId>
                                     <artifactId>ares</artifactId>
-                                    <version>2.0.1-Beta4</version>
+                                    <version>2.1.5</version>
+                                    <classifier>agent</classifier>
                                     <type>jar</type>
-                                    <outputDirectory>${project.build.directory}/agents/ares-unpacked</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                                    <destFileName>ares-agent.jar</destFileName>
+                                    <overWrite>true</overWrite>
                                 </artifactItem>
                             </artifactItems>
-                            <overWrite>true</overWrite>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-
-            <!-- Aus entpacktem Ares ein Agent-Jar mit korrektem Manifest bauen (Classifier: ares-agent) -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.4.2</version>
-                <executions>
-                    <execution>
-                        <id>build-ares-agent</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                        <configuration>
-                            <classesDirectory>${project.build.directory}/agents/ares-unpacked</classesDirectory>
-                            <classifier>ares-agent</classifier>
-                            <archive>
-                                <manifestEntries>
-                                    <Premain-Class>de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent</Premain-Class>
-                                    <Can-Redefine-Classes>true</Can-Redefine-Classes>
-                                    <Can-Retransform-Classes>true</Can-Retransform-Classes>
-                                    <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
-                                    <Boot-Class-Path></Boot-Class-Path>
-                                    <Main-Class>de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent</Main-Class>
-                                    <Multi-Release>true</Multi-Release>
-                                </manifestEntries>
-                            </archive>
-                        </configuration>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.eclipse.tycho</groupId>
-                        <artifactId>tycho-compiler-jdt</artifactId>
-                        <version>4.0.13</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -337,7 +308,7 @@
                 <configuration>
                     <useModulePath>false</useModulePath>
                     <argLine>
-                        -javaagent:target/${project.artifactId}-${project.version}-ares-agent.jar
+                        -javaagent:${project.build.directory}/agents/ares-agent.jar
                         --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
                         --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
                         --add-opens java.base/java.lang=ALL-UNNAMED
@@ -390,7 +361,7 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.8.4.0</version>
+                <version>4.9.8.1</version>
                 <configuration>
                     <!-- Do not analyze the files in the test directory -->
                     <includeTests>${analyzeTests}</includeTests>
