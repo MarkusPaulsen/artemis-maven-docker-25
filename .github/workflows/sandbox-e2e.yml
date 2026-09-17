@@ -1,0 +1,69 @@
+# Builds this image and proves that its two sandbox layers, Ares (JVM) and the embedded Phobos
+# (operating system), both act and act together. It runs the sandbox-e2e matrix: nine access
+# types across four quadrants (Ares allow/deny x Phobos allow/deny), each wrapping `mvn test` with
+# phobos.sh and asserting which layer blocks.
+#
+# Native per architecture, never under QEMU: Landlock and the seccomp connect-guard the matrix
+# rests on are unreliable under emulation. Separate from build-and-push.yml (that job publishes the
+# image with buildx; this one exercises it) on purpose.
+name: Sandbox E2E
+
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sandbox-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  matrix:
+    name: Ares + Phobos sandbox matrix (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: amd64
+            runner: ubuntu-24.04
+          - platform: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Build the image from this repository's Dockerfile so the matrix exercises the exact
+      # embedded phobos core an image built here would ship, on this runner's own architecture.
+      - name: Build the image
+        run: docker build -t sandbox-e2e-image:ci .
+
+      # One-time cache warm-up with network, as the non-root sandbox user, so the offline run finds
+      # every dependency (Ares 2.1.5 pulls newer transitives than the baked repo has).
+      - name: Warm the Maven cache
+        run: |
+          docker volume create sandbox-e2e-m2
+          docker run --rm \
+            -v sandbox-e2e-m2:/home/sandbox/.m2 \
+            -v "${PWD}/sandbox-e2e:/e2e:ro" \
+            sandbox-e2e-image:ci bash /e2e/prewarm.sh
+
+      # The matrix itself: offline, --network none, no --privileged/--cap-add/--security-opt, and as
+      # a non-root user (root bypasses RLIMIT_NPROC, so the threads case only bites for a normal
+      # user). run-nonroot.sh exits non-zero on any mismatch, failing the job.
+      - name: Run the matrix
+        run: |
+          docker run --rm --network none \
+            -v sandbox-e2e-m2:/home/sandbox/.m2 \
+            -v "${PWD}/sandbox-e2e:/e2e:ro" \
+            sandbox-e2e-image:ci bash /e2e/run-nonroot.sh

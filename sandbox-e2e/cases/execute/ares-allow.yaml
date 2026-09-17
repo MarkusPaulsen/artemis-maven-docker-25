@@ -1,0 +1,17 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: de.tum.in.ase
+  theMainClassInsideThisPackageIs: "Probe"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.in.ase.ProbeTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions:
+      - executeTheCommand: "/var/tmp/probe/tool"
+        withTheseArguments: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 60000
