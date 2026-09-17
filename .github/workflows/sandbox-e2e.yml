@@ -43,10 +43,16 @@ jobs:
         with:
           persist-credentials: false
 
-      # Build the image from this repository's Dockerfile so the matrix exercises the exact
-      # embedded phobos core an image built here would ship, on this runner's own architecture.
-      - name: Build the image
-        run: docker build -t sandbox-e2e-image:ci .
+      # Pull the published image rather than building here: the Dockerfile's `COPY --from` pulls a
+      # phobos base that is not accessible from this repository's CI, and the matrix stages its own
+      # base per case, so it never uses the image's baked base policy. Building and pulling are
+      # therefore equivalent for the matrix, and pulling is what runs in this CI.
+      - name: Pull the image
+        env:
+          IMAGE: ${{ vars.SANDBOX_E2E_IMAGE || 'markuspaulsen/artemis-maven-template:latest' }}
+        run: |
+          docker pull "${IMAGE}"
+          docker tag "${IMAGE}" sandbox-e2e-image:ci
 
       # One-time cache warm-up with network, as the non-root sandbox user, so the offline run finds
       # every dependency (Ares 2.1.5 pulls newer transitives than the baked repo has).
