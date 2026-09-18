@@ -38,4 +38,9 @@ RUN test -x /var/tmp/opt/core/phobos.sh \
     && test -x /var/tmp/opt/core/phobos-landlock \
     && test -f /var/tmp/opt/core/libnetblocker.so
 
+# This image runs Maven, but the embedded phobos core ships a Gradle-shaped base policy
+# (/root/.gradle, gradlew, build) that cannot carry `mvn test`. Replace it with a Maven-shaped
+# base so a grading run wrapped with phobos.sh has a base matching this image's build tool.
+COPY phobos-base/BaseLanguage-java.cfg /var/tmp/opt/core/BaseLanguage-java.cfg
+
 CMD ["mvn"]

@@ -15,6 +15,12 @@ jobs:
   buildx:
     name: Build and Push the Docker Images
     runs-on: ubuntu-latest
+    # Docker Hub credentials are not set on a fork. The login, GHCR-login and build/push steps below
+    # skip cleanly when DOCKER_USERNAME is absent, so the job stays green on a fork instead of
+    # failing the non-interactive `docker login`. Upstream, where the secrets exist, every step runs.
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     steps:
       - name: Compute Tag
         uses: actions/github-script@v6
@@ -40,8 +46,9 @@ jobs:
       -
         name: Docker Login
         id: docker-login
+        if: ${{ env.DOCKER_USERNAME != '' }}
         run: |
-          docker login -u ${{secrets.DOCKER_USERNAME}} -p ${{secrets.DOCKER_PASSWORD}}
+          docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
 
       -
         name: Login to GitHub Container Registry
@@ -50,7 +57,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ steps.compute-tag.outputs.result != 'FALSE' }}
+        if: ${{ steps.compute-tag.outputs.result != 'FALSE' && env.DOCKER_USERNAME != '' }}
 
       -
         name: Set up QEMU
@@ -68,7 +75,7 @@ jobs:
       -
         name: Build Image and Push to GitHub Container Registry and DockerHub
         uses: docker/build-push-action@v6
-        if: ${{ steps.compute-tag.outputs.result != 'FALSE' }}
+        if: ${{ steps.compute-tag.outputs.result != 'FALSE' && env.DOCKER_USERNAME != '' }}
         with:
           context: .
           tags: |
